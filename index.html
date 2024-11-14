@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LED Strip Voltage Drop Calculator</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .input-field { width: 100%; padding: 8px; margin: 10px 0; box-sizing: border-box; } /* Ensures consistent width */
+        button { padding: 10px; background-color: #4CAF50; color: white; border: none; cursor: pointer; width: 100%; }
+        button:hover { background-color: #45a049; }
+        .result { font-weight: bold; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>LED Strip Transformer and Voltage Drop Calculator</h2>
+        <form id="calcForm">
+            <label for="stripLength">LED Strip Length (ft):</label>
+            <input type="number" id="stripLength" class="input-field" placeholder="e.g., 10" required>
+
+            <label for="powerPerFoot">Power Draw per Foot (W):</label>
+            <input type="number" step="0.1" id="powerPerFoot" class="input-field" placeholder="e.g., 5.6" required>
+
+            <label for="voltage">System Voltage (V):</label>
+            <input type="number" step="0.1" id="voltage" class="input-field" placeholder="e.g., 12" required>
+
+            <label for="wireLength">Wire Length (ft):</label>
+            <input type="number" id="wireLength" class="input-field" placeholder="e.g., 33" required>
+
+            <label for="wireGauge">Wire Gauge (AWG):</label>
+            <select id="wireGauge" class="input-field" required>
+                <option value="18">18 AWG</option>
+                <option value="16">16 AWG</option>
+                <option value="14">14 AWG</option>
+                <option value="12">12 AWG</option>
+                <option value="10">10 AWG</option>
+            </select>
+
+            <button type="button" onclick="calculate()">Calculate</button>
+        </form>
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        // Resistance of copper in ohm·mm²/m
+        const resistivity = 0.017;
+
+        // Cross-sectional areas for common wire gauges in mm²
+        const wireAreas = {
+            "18": 0.823,
+            "16": 1.31,
+            "14": 2.08,
+            "12": 3.31,
+            "10": 5.26
+        };
+
+        function calculate() {
+            // Get input values
+            const stripLength = parseFloat(document.getElementById("stripLength").value);
+            const powerPerFoot = parseFloat(document.getElementById("powerPerFoot").value);
+            const voltage = parseFloat(document.getElementById("voltage").value);
+            const wireLength = parseFloat(document.getElementById("wireLength").value);
+            const wireGauge = document.getElementById("wireGauge").value;
+
+            // Calculate total power requirement for the LED strip
+            const totalPower = stripLength * powerPerFoot;
+
+            // Calculate transformer wattage (adding 25% buffer)
+            const recommendedTransformerWattage = totalPower / 0.8;
+
+            // Calculate current drawn by the LED strip
+            const current = totalPower / voltage;
+
+            // Calculate round-trip length in meters
+            const roundTripLength = wireLength * 2 * 0.3048; // Convert feet to meters
+
+            // Find cross-sectional area for selected wire gauge
+            const crossSectionalArea = wireAreas[wireGauge];
+
+            // Calculate resistance of the wire
+            const resistance = (roundTripLength * resistivity) / crossSectionalArea;
+
+            // Calculate voltage drop
+            const voltageDrop = current * resistance;
+
+            // Display results
+            document.getElementById("result").innerHTML = `
+                <p>Minimal transformer Wattage Needed: ${recommendedTransformerWattage.toFixed(2)} W</p>
+                <p>Total Current Drawn by LED Strip: ${current.toFixed(2)} A</p>
+                <p>Voltage Drop across Wire: ${voltageDrop.toFixed(2)} V
+                    ${voltageDrop > voltage*0.05
+                    ?`<span style="color:red"> which is ${(voltageDrop/12*100).toFixed(2)}%, it has to be less then 5% </span>`
+                    :""}
+                    </p>
+                <p>Final Voltage at LED Strip: ${(voltage - voltageDrop).toFixed(2)} V</p>
+                <p style="color: ${voltageDrop < voltage * 0.05 ? 'green' : 'red'};">
+                    ${voltageDrop < voltage*0.05 
+                    ? "The voltage drop is within acceptable limits of less the 5%"
+                    : "Warning: The voltage drop is above acceptable 5% threshold limit. Consider using a thicker wire."}</p>
+            `;
+        }
+    </script>
+</body>
+</html>
